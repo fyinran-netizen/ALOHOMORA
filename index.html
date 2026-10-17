@@ -10,11 +10,11 @@
     <main class="experience" aria-label="Hogwarts scene experience">
       <section class="scene-frame" id="scene-frame" data-state="loading" aria-busy="true">
         <div id="hall-view" hidden aria-hidden="true">
-          <img id="hall-image" src="assets/scenes/great_hall.png" alt="The candlelit Great Hall" />
+          <img id="hall-image" src="assets/scenes/great_hall/great_hall.png" alt="The candlelit Great Hall" />
         </div>
         <div class="gate-camera" id="gate-camera">
           <canvas id="scene-canvas" role="img" aria-label="Hogwarts entrance"></canvas>
-          <img id="gate-image" class="loading-scene" src="assets/scenes/hogwarts_gate.png" alt="Hogwarts gate on a snowy night" />
+          <img id="gate-image" class="loading-scene" src="assets/scenes/gate/hogwarts_gate.png" alt="Hogwarts gate on a snowy night" />
         </div>
         <button class="gate-hotspot" id="gate-hotspot" type="button" aria-label="Enter the Great Hall" disabled></button>
         <div class="scene-copy" id="scene-copy">
@@ -26,6 +26,6 @@
       </section>
     </main>
     <audio id="door-sound" src="assets/audio/dragon-studio-opening-door-450444.mp3" preload="auto"></audio>
-    <script src="js/main.js"></script>
+    <script type="module" src="js/main.js"></script>
   </body>
 </html>
