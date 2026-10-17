@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Alohomora</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <main class="experience" aria-label="Hogwarts scene experience">
+      <section class="scene-frame" id="scene-frame" data-state="loading" aria-busy="true">
+        <div id="hall-view" hidden aria-hidden="true">
+          <img id="hall-image" src="assets/scenes/great_hall.png" alt="The candlelit Great Hall" />
+        </div>
+        <div class="gate-camera" id="gate-camera">
+          <canvas id="scene-canvas" role="img" aria-label="Hogwarts entrance"></canvas>
+          <img id="gate-image" class="loading-scene" src="assets/scenes/hogwarts_gate.png" alt="Hogwarts gate on a snowy night" />
+        </div>
+        <button class="gate-hotspot" id="gate-hotspot" type="button" aria-label="Enter the Great Hall" disabled></button>
+        <div class="scene-copy" id="scene-copy">
+          <h1>ALOHOMORA</h1>
+          <p>Click the gate to enter</p>
+        </div>
+        <button class="return-entry" id="return-entry" type="button" hidden disabled>Return to the entrance</button>
+        <div class="image-fallback" id="image-fallback" role="status" hidden>Scene unavailable</div>
+      </section>
+    </main>
+    <audio id="door-sound" src="assets/audio/dragon-studio-opening-door-450444.mp3" preload="auto"></audio>
+    <script src="js/main.js"></script>
+  </body>
+</html>
