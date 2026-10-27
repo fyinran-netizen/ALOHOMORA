@@ -1,31 +1,67 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Alohomora</title>
-    <link rel="stylesheet" href="css/style.css" />
-  </head>
-  <body>
-    <main class="experience" aria-label="Hogwarts scene experience">
-      <section class="scene-frame" id="scene-frame" data-state="loading" aria-busy="true">
-        <div id="hall-view" hidden aria-hidden="true">
-          <img id="hall-image" src="assets/scenes/great_hall/great_hall.png" alt="The candlelit Great Hall" />
-        </div>
-        <div class="gate-camera" id="gate-camera">
-          <canvas id="scene-canvas" role="img" aria-label="Hogwarts entrance"></canvas>
-          <img id="gate-image" class="loading-scene" src="assets/scenes/gate/hogwarts_gate.png" alt="Hogwarts gate on a snowy night" />
-        </div>
-        <button class="gate-hotspot" id="gate-hotspot" type="button" aria-label="Enter the Great Hall" disabled></button>
-        <div class="scene-copy" id="scene-copy">
-          <h1>ALOHOMORA</h1>
-          <p>Click the gate to enter</p>
-        </div>
-        <button class="return-entry" id="return-entry" type="button" hidden disabled>Return to the entrance</button>
-        <div class="image-fallback" id="image-fallback" role="status" hidden>Scene unavailable</div>
-      </section>
-    </main>
-    <audio id="door-sound" src="assets/audio/dragon-studio-opening-door-450444.mp3" preload="auto"></audio>
-    <script type="module" src="js/main.js"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#080f23" />
+  <title>ALOHOMORA · Hogwarts</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <main class="experience">
+    <section id="scene-frame" class="scene-frame" aria-label="Hogwarts castle entrance" aria-busy="true">
+      <div class="sky" aria-hidden="true"><canvas id="celestial-canvas" class="celestial-canvas"></canvas><canvas id="atmosphere-canvas" class="atmosphere-canvas"></canvas><canvas id="star-canvas" class="stars"></canvas></div>
+      <img id="castle-image" class="castle" src="assets/source/hogwarts_castle_master.png" alt="Stone steps and towers at the entrance to Hogwarts castle" fetchpriority="high" />
+      <div id="gate-lights" class="gate-lights" aria-hidden="true">
+        <img class="window-lights" src="assets/scenes/gate/window_lights_warm.png" alt="" />
+        <img class="lamp-glow" src="assets/scenes/gate/castle_lamp_glow.png" alt="" />
+        <div class="lantern-controls" aria-label="Castle lanterns"></div>
+      </div>
+      <div id="gate-aura" class="gate-aura" aria-hidden="true"></div>
+      <div class="vignette" aria-hidden="true"></div>
+      <canvas id="sunlight-canvas" class="sunlight-canvas" aria-hidden="true"></canvas>
+      <canvas id="weather-canvas" class="weather-canvas" aria-hidden="true"></canvas>
+      <header class="scene-heading">
+        <p class="eyebrow">HOGWARTS · THE CASTLE GROUNDS</p>
+        <h1>ALOHOMORA</h1>
+        <p class="subtitle">Every adventure begins here.</p>
+      </header>
+      <p id="scene-status" class="scene-status" role="status">Loading the castle…</p>
+      <footer class="scene-caption"><span class="caption-line"></span>CASTLE ENTRANCE<span>·</span>ENVIRONMENT STUDY</footer>
+    </section>
+    <details id="environment-panel" class="environment-panel">
+      <summary><span class="panel-indicator"></span>Environment controls<span class="panel-chevron" aria-hidden="true">⌃</span></summary>
+      <form>
+        <div class="panel-heading"><span>ENVIRONMENT</span><small>LIVE PREVIEW</small></div>
+        <fieldset><legend>Time</legend>
+          <label class="control-row" for="time-mode">Mode<select id="time-mode" name="timeMode"><option value="auto" selected>Auto · Local time</option><option value="manual">Manual</option></select></label>
+          <label class="range-label" for="time-hour">Hour<output id="time-value" for="time-hour">12:00</output></label>
+          <input id="time-hour" name="hour" type="range" min="0" max="24" step="0.01" value="12" />
+          <div class="range-ticks" aria-hidden="true"><span>00:00</span><span>12:00</span><span>24:00</span></div>
+          <p id="sunset-value" class="control-note">This browser's local time · Lanterns turn on at sunset.</p>
+          <button id="sunset-location" class="location-button" type="button" hidden>Allow location for accurate sunset</button>
+        </fieldset>
+        <fieldset><legend>Weather</legend>
+          <label class="control-row" for="weather-type">Condition<select id="weather-type" name="weather"><option value="clear">Clear</option><option value="overcast">Overcast</option><option value="rain">Rain</option><option value="snow">Snow</option></select></label>
+          <label class="range-label" for="weather-intensity">Intensity<output id="intensity-value" for="weather-intensity">60%</output></label>
+          <input id="weather-intensity" name="intensity" type="range" min="0" max="1" step="0.01" value="0.6" disabled />
+          <label class="range-label" for="weather-speed">Fall speed<output id="speed-value" for="weather-speed">1.0×</output></label>
+          <input id="weather-speed" name="speed" type="range" min="0.25" max="2" step="0.05" value="1" />
+          <label class="range-label" for="weather-wind">Wind<output id="wind-value" for="weather-wind">20% right</output></label>
+          <input id="weather-wind" name="wind" type="range" min="-1" max="1" step="0.05" value="0.2" />
+          <p class="control-note">Wind blows left or right. Intensity controls cloud cover and particle density.</p>
+        </fieldset>
+        <fieldset><legend>Lighting</legend>
+          <label class="control-row" for="light-mode">Mode<select id="light-mode" name="lightMode"><option value="auto">Auto · Time of day</option><option value="manual">Manual</option></select></label>
+          <label class="range-label" for="light-brightness">Castle brightness<output id="brightness-value" for="light-brightness">100%</output></label>
+          <input id="light-brightness" name="brightness" type="range" min="0" max="1.6" step="0.01" value="1" disabled />
+          <p class="range-label"><span>Sun elevation</span><output id="sun-elevation">Below horizon</output></p>
+          <p class="range-label"><span>Direct sunlight</span><output id="sun-strength">Night</output></p>
+          <p class="control-note">Sunlight changes direction and strength through the day. Manual brightness also scales the sunlight.</p>
+        </fieldset>
+      </form>
+    </details>
+  </main>
+  <script type="module" src="js/main.js"></script>
+</body>
 </html>

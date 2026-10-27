@@ -1,12 +1,83 @@
 export const gateScene = {
   id: "gate",
-  title: "Hogwarts entrance",
+  title: "Hogwarts · Castle entrance",
   assets: {
-    image: "assets/scenes/gate/hogwarts_gate.png",
-    openImage: "assets/scenes/gate/hogwarts_gate_open.png",
+    image: "assets/source/hogwarts_castle_master.png",
+    clouds: [
+      "assets/scenes/gate/cloud_cluster_a.png", "assets/scenes/gate/cloud_cluster_b.png",
+      "assets/scenes/gate/cloud_cluster_c.png", "assets/scenes/gate/cloud_cluster_d.png",
+      "assets/scenes/gate/cloud_cluster_e.png", "assets/scenes/gate/cloud_cluster_f.png",
+      "assets/scenes/gate/cloud_cluster_h.png",
+    ],
   },
-  hotspots: {
-    enterHall: { target: "great_hall", label: "Enter the Great Hall" },
+  framing: {
+    // Wide screens prioritize the facade and entrance, allowing high towers
+    // above the viewport. Portrait uses an entrance-centered close view.
+    // Place the door threshold at 65% height instead of anchoring the source
+    // bottom. This restores the gable/facade and removes excess paved foreground.
+    landscape: {fit:"width", scale:1, x:0, y:0, anchorX:1, sourceY:.75, screenY:.65},
+    // Keep the highest spire in view while covering the viewport and retaining
+    // the main stairs plus a narrow strip of stone foreground.
+    portrait: {fit:"height", scale:1.12, x:0, y:-3.5, sourceX:.5, screenX:.5, sourceY:0, screenY:0, cover:true},
   },
-  environment: { kind: "outdoor", weather: "snowy_night" },
+  mountFraming,
+  hotspots: {},
+  environment: { kind: "outdoor", exposure: 1 },
 };
+
+// Scene-owned code configuration. X/Y are viewport-relative percentage offsets.
+// Fit the original aspect ratio on one axis; viewport clipping is intentional
+// for the wide facade view, with no image masks or alpha manipulation.
+export function fitCastle(viewport, source, framing) {
+  const fit = framing.fit === "width" ? viewport.width/source.width : viewport.height/source.height;
+  let width = source.width*fit*framing.scale;
+  let height = source.height*fit*framing.scale;
+  if (framing.cover && framing.sourceX !== undefined) {
+    const screenX = framing.screenX+framing.x/100;
+    const minimumWidth = Math.max(
+      viewport.width*screenX/framing.sourceX,
+      viewport.width*(1-screenX)/(1-framing.sourceX),
+    );
+    if (width < minimumWidth) {
+      width = minimumWidth;
+      height = width*source.height/source.width;
+    }
+  }
+  const left = framing.sourceX === undefined ? (viewport.width-width)*framing.anchorX
+    : viewport.width*framing.screenX-width*framing.sourceX;
+  const top = framing.sourceY === undefined ? viewport.height-height
+    : viewport.height*framing.screenY-height*framing.sourceY;
+  return {width,height,left:left+viewport.width*framing.x/100,
+    top:top+viewport.height*framing.y/100};
+}
+
+function mountFraming(frame,image) {
+  const events = new AbortController();
+  const aura=frame.querySelector("#gate-aura");
+  const lights=frame.querySelector("#gate-lights");
+  function render() {
+    const viewport = {width:frame.clientWidth,height:frame.clientHeight};
+    const orientation = viewport.width/viewport.height < .8 ? "portrait" : "landscape";
+    if (image.naturalWidth && image.naturalHeight) {
+      const rect = fitCastle(viewport,{width:image.naturalWidth,height:image.naturalHeight},gateScene.framing[orientation]);
+      for (const [key,value] of Object.entries(rect)) image.style[key] = value+"px";
+      if (lights) for (const [key,value] of Object.entries(rect)) lights.style[key] = value+"px";
+      if (aura) {
+        const sourceWidth=image.naturalWidth,sourceHeight=image.naturalHeight;
+        aura.style.left=rect.left+566/sourceWidth*rect.width+"px";
+        aura.style.top=rect.top+951/sourceHeight*rect.height+"px";
+        aura.style.width=116/sourceWidth*rect.width+"px";
+        aura.style.height=217/sourceHeight*rect.height+"px";
+        aura.style.visibility="visible";
+      }
+      image.style.visibility = "visible";
+    }
+  }
+  const observer = new ResizeObserver(render);
+  observer.observe(frame);
+  image.addEventListener("load",render,{signal:events.signal});
+  render();
+  return {
+    dispose() { observer.disconnect(); events.abort(); },
+  };
+}
