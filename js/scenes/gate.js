@@ -57,20 +57,43 @@ function mountFraming(frame,image) {
   const aura=frame.querySelector("#gate-aura");
   const lights=frame.querySelector("#gate-lights");
   function moveWithPointer(event) {
-    if (reducedMotion?.matches) return;
     const bounds=frame.getBoundingClientRect();
     const x=(event.clientX-bounds.left)/bounds.width-.5;
     const y=(event.clientY-bounds.top)/bounds.height-.5;
-    frame.style.setProperty("--sky-parallax-x",`${-x*9}px`);
-    frame.style.setProperty("--sky-parallax-y",`${-y*7}px`);
-    frame.style.setProperty("--castle-parallax-x",`${x*4}px`);
-    frame.style.setProperty("--castle-parallax-y",`${y*3}px`);
+    if (!reducedMotion?.matches) {
+      frame.style.setProperty("--sky-parallax-x",`${-x*9}px`);
+      frame.style.setProperty("--sky-parallax-y",`${-y*7}px`);
+      frame.style.setProperty("--castle-parallax-x",`${x*4}px`);
+      frame.style.setProperty("--castle-parallax-y",`${y*3}px`);
+    }
+    if (aura) {
+      const door=aura.getBoundingClientRect();
+      const dx=Math.max(door.left-event.clientX,0,event.clientX-door.right);
+      const dy=Math.max(door.top-event.clientY,0,event.clientY-door.bottom);
+      const distance=Math.hypot(dx,dy),radius=Math.max(42,Math.min(door.width*.8,door.height*.32));
+      const proximity=Math.max(0,1-distance/radius);
+      frame.style.setProperty("--gate-hover",String(proximity*proximity*(3-2*proximity)));
+      if(proximity>.02){
+        const localX=Math.max(0,Math.min(door.width,event.clientX-door.left));
+        const localY=Math.max(0,Math.min(door.height,event.clientY-door.top));
+        frame.style.setProperty("--gate-warp-x",`${localX/door.width*100}%`);
+        frame.style.setProperty("--gate-warp-y",`${localY/door.height*100}%`);
+      }else{
+        frame.style.setProperty("--gate-warp-x","50%");
+        frame.style.setProperty("--gate-warp-y","50%");
+      }
+      frame.classList.toggle("is-gate-hover",proximity>.04);
+    }
   }
   function resetParallax() {
     if (!frame.style?.setProperty) return;
     for (const name of ["--sky-parallax-x","--sky-parallax-y","--castle-parallax-x","--castle-parallax-y"]) {
       frame.style.setProperty(name,"0px");
     }
+    frame.style.setProperty("--gate-hover","0");
+    frame.style.setProperty("--gate-warp-x","50%");
+    frame.style.setProperty("--gate-warp-y","50%");
+    frame.classList.remove("is-gate-hover");
   }
   if (reducedMotion && !reducedMotion.matches && matchMedia("(hover: hover) and (pointer: fine)").matches) {
     frame.addEventListener("pointermove",moveWithPointer,{signal:events.signal});

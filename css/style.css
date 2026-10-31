@@ -14,6 +14,7 @@
 @property --sky-top { syntax: "<color>"; inherits: true; initial-value: #080f23; }
 @property --sky-horizon { syntax: "<color>"; inherits: true; initial-value: #1b2740; }
 @property --gate-darkness { syntax: "<number>"; inherits: true; initial-value: 0; }
+@property --gate-hover { syntax: "<number>"; inherits: true; initial-value: 0; }
 @property --cloud-visibility { syntax: "<number>"; inherits: true; initial-value: .48; }
 @property --cloud-brightness { syntax: "<number>"; inherits: true; initial-value: 1; }
 @property --cloud-saturation { syntax: "<number>"; inherits: true; initial-value: 1; }
@@ -24,7 +25,7 @@
 html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
 input, select { font: inherit; }
 .experience, .scene-frame { position: relative; width: 100%; height: 100%; height: 100dvh; overflow: hidden; }
-.scene-frame { --sky-top: #080f23; --sky-horizon: #1b2740; --gate-darkness: 0; --castle-brightness: .56; --castle-saturation: .65; --cloud-visibility: .48; --cloud-brightness: 1; --cloud-saturation: 1; --cloud-warmth: .04; --lamp-core: 255,244,220; --lamp-gold: 247,215,159; --lamp-halo: 231,174,105; --lamp-image-tint: saturate(1); isolation: isolate; transition: --sky-top 1.5s ease, --sky-horizon 1.5s ease, --cloud-visibility 1.5s ease, --cloud-brightness 1.5s ease, --cloud-saturation 1.5s ease, --cloud-warmth 1.5s ease; }
+.scene-frame { --sky-top: #080f23; --sky-horizon: #1b2740; --gate-darkness: 0; --gate-hover: 0; --gate-warp-x: 50%; --gate-warp-y: 50%; --castle-brightness: .56; --castle-saturation: .65; --cloud-visibility: .48; --cloud-brightness: 1; --cloud-saturation: 1; --cloud-warmth: .04; --lamp-core: 255,244,220; --lamp-gold: 247,215,159; --lamp-halo: 231,174,105; --lamp-image-tint: saturate(1); isolation: isolate; transition: --sky-top 1.5s ease, --sky-horizon 1.5s ease, --cloud-visibility 1.5s ease, --cloud-brightness 1.5s ease, --cloud-saturation 1.5s ease, --cloud-warmth 1.5s ease; }
 /* Scene layers */
 .sky, .castle, .vignette, .stars, .atmosphere-canvas, .celestial-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .sky { background: linear-gradient(180deg,var(--sky-top),var(--sky-horizon) 75%); background-size: 110% 110%; background-position: calc(50% + var(--sky-parallax-x,0px)) calc(50% + var(--sky-parallax-y,0px)); transition: background-position .35s ease-out; }
@@ -54,15 +55,19 @@ input, select { font: inherit; }
   background: linear-gradient(180deg,transparent 7%,rgba(var(--lamp-gold),.72) 16%,rgba(var(--lamp-core),.9) 28%,rgba(var(--lamp-gold),.66) 39%,rgba(var(--lamp-core),.96) 53%,rgba(var(--lamp-gold),.76) 64%,rgba(var(--lamp-core),.9) 78%,rgba(var(--lamp-gold),.64) 90%,transparent 98%) center/2px 100% no-repeat;
   mix-blend-mode: screen;
   filter: drop-shadow(0 0 9px rgba(var(--lamp-core),.64)) drop-shadow(0 0 22px rgba(var(--lamp-halo),.52));
-  animation: gate-aura-pulse 3.2s ease-in-out infinite alternate;
+  transform: translate3d(var(--castle-parallax-x,0px),var(--castle-parallax-y,0px),0);
+  transition: transform .35s ease-out, filter .25s ease;
+  opacity: 0;
+  animation: none;
 }
+.scene-frame.is-gate-hover .gate-aura { opacity: 0; }
 .gate-lights { position: absolute; pointer-events: none; opacity: 0; transform: translate3d(var(--castle-parallax-x,0px),var(--castle-parallax-y,0px),0); transition: opacity .8s ease, transform .35s ease-out; }
 .gate-lights img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; max-width: none; }
 .lamp-glow { mix-blend-mode: screen; opacity: .42; filter: brightness(1) var(--lamp-image-tint) drop-shadow(0 0 9px rgba(var(--lamp-core),.76)) drop-shadow(0 0 18px rgba(var(--lamp-halo),.58)); }
 .lantern-controls { position: absolute; inset: 0; pointer-events: none; }
 .window-controls { position: absolute; inset: 0; pointer-events: auto; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
 .gate-lights img.window-hotspot { mix-blend-mode: screen; opacity: 0; pointer-events: none; user-select: none; -webkit-user-drag: none; }
-.gate-lights img.window-hotspot.is-flashing { animation: window-click-flash 1.8s ease-in-out both; }
+.gate-lights img.window-hotspot.is-flashing { animation: window-click-flash .62s ease-out both; }
 .lantern-hotspot { position: absolute; left: var(--x); top: var(--y); width: var(--w); height: var(--h); padding: 0; border: 0; border-radius: 50%; background: radial-gradient(ellipse, rgba(var(--lamp-core),.96) 0%, rgba(var(--lamp-gold),.88) 22%, rgba(var(--lamp-halo),.42) 48%, transparent 73%); mix-blend-mode: screen; opacity: .82; filter: drop-shadow(0 0 7px rgba(var(--lamp-gold),.56)) drop-shadow(0 0 18px rgba(var(--lamp-halo),.4)); transform: translate(-50%,-50%); cursor: pointer; pointer-events: auto; animation: lantern-flutter 5.4s ease-in-out infinite; animation-delay: var(--delay); }
 .lantern-hotspot:focus-visible { outline: 2px solid #fff2c9; outline-offset: 4px; }
 .lantern-hotspot.is-flashing { animation: lantern-click-flash .62s ease-out both; }
@@ -71,7 +76,7 @@ input, select { font: inherit; }
 .gate-lights[data-lit="true"] img { animation-play-state: running; }
 @keyframes lantern-flutter { 0%,100% { opacity: .62; filter: brightness(.85) drop-shadow(0 0 5px rgba(var(--lamp-gold),.5)) drop-shadow(0 0 12px rgba(var(--lamp-halo),.28)); } 18% { opacity: 1; filter: brightness(1.65) drop-shadow(0 0 12px rgba(var(--lamp-core),.92)) drop-shadow(0 0 30px rgba(var(--lamp-halo),.7)); } 36% { opacity: .42; filter: brightness(.72) drop-shadow(0 0 4px rgba(var(--lamp-gold),.42)) drop-shadow(0 0 9px rgba(var(--lamp-halo),.2)); } 57% { opacity: .96; filter: brightness(1.45) drop-shadow(0 0 11px rgba(var(--lamp-core),.84)) drop-shadow(0 0 26px rgba(var(--lamp-halo),.62)); } 78% { opacity: .5; filter: brightness(.78) drop-shadow(0 0 5px rgba(var(--lamp-gold),.42)) drop-shadow(0 0 10px rgba(var(--lamp-halo),.22)); } }
 @keyframes lantern-click-flash { 0% { opacity: .8; filter: brightness(1) drop-shadow(0 0 8px rgba(var(--lamp-gold),.66)); } 20% { opacity: 1; filter: brightness(2.8) drop-shadow(0 0 18px rgba(var(--lamp-core),.98)) drop-shadow(0 0 34px rgba(var(--lamp-halo),.76)); } 100% { opacity: .78; filter: brightness(1.12) drop-shadow(0 0 7px rgba(var(--lamp-gold),.58)) drop-shadow(0 0 18px rgba(var(--lamp-halo),.38)); } }
-@keyframes window-click-flash { 0%,100% { opacity: .06; filter: brightness(1); } 38% { opacity: .22; filter: brightness(1.2) drop-shadow(0 0 5px rgba(255,211,128,.28)); } 66% { opacity: .3; filter: brightness(1.35) drop-shadow(0 0 8px rgba(255,211,128,.4)) drop-shadow(0 0 12px rgba(231,161,75,.2)); } }
+@keyframes window-click-flash { 0% { opacity: .72; filter: brightness(1.1); } 22% { opacity: 1; filter: brightness(2.35); } 100% { opacity: .82; filter: brightness(1.22); } }
 @keyframes window-flutter {
   0%,100% { opacity: .8; filter: brightness(.92) saturate(.94) sepia(.02) blur(2px) drop-shadow(0 0 4px rgba(246,199,112,.2)) drop-shadow(0 0 6px rgba(226,165,81,.14)); }
   28% { opacity: .82; filter: brightness(.96) saturate(.98) sepia(.04) blur(2px) drop-shadow(0 0 5px rgba(255,190,66,.24)) drop-shadow(0 0 7px rgba(238,153,38,.16)); }
@@ -79,11 +84,11 @@ input, select { font: inherit; }
   78% { opacity: .82; filter: brightness(.95) saturate(.97) sepia(.04) blur(2px) drop-shadow(0 0 5px rgba(255,190,66,.22)) drop-shadow(0 0 7px rgba(238,153,38,.15)); }
 }
 @media (prefers-reduced-motion: reduce) { .gate-lights { transition: none; } .lamp-glow, .window-lights, .lantern-hotspot { animation: none; } }
-@keyframes gate-aura-pulse { from {opacity:calc(var(--gate-darkness)*.28)} to {opacity:var(--gate-darkness)} }
 @media (prefers-reduced-motion: reduce) {
-  .gate-aura {animation:none;opacity:calc(var(--gate-darkness)*.72)}
+  .gate-aura {animation:none;opacity:0;transition:none}
 }
 .weather-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.gate-magic-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .firefly-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .sunlight-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; mix-blend-mode: screen; }
 .vignette { pointer-events: none; background: linear-gradient(180deg,#0002,transparent 30%,transparent 75%,#03081530); }

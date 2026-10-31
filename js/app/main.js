@@ -10,6 +10,7 @@ import {createCelestialRenderer} from "../environment/celestialRenderer.js";
 import {createFireflyRenderer} from "../environment/fireflies.js";
 import {createSunSchedule} from "../environment/sunset.js";
 import {mountGateLamps} from "../scenes/gateLamps.js";
+import {createGateMagicRenderer} from "../scenes/gateMagic.js";
 
 const scene = getScene("gate");
 const frame = document.querySelector("#scene-frame");
@@ -41,6 +42,7 @@ const atmosphere = createAtmosphereRenderer(document.querySelector("#atmosphere-
 const celestial = createCelestialRenderer(document.querySelector("#celestial-canvas"),environment);
 const fireflies = createFireflyRenderer(document.querySelector("#firefly-canvas"),environment);
 const lamps = mountGateLamps(document.querySelector("#gate-lights"),environment,image,sunSchedule);
+const gateMagic = createGateMagicRenderer(document.querySelector("#gate-magic-canvas"),frame,document.querySelector("#gate-aura"),image,environment);
 const lifecycle = new AbortController();
 function loaded() { frame.setAttribute("aria-busy","false"); status.hidden = true; }
 image.addEventListener("load",loaded,{signal:lifecycle.signal});
@@ -59,9 +61,10 @@ window.addEventListener("pagehide",event => {
   celestial.stop();
   fireflies.stop();
   lamps.stop();
-  if (!event.persisted) { unsubscribe(); unmountPanel(); unmountDrag(); weather.dispose(); sunlight.dispose(); skyMotion.dispose(); atmosphere.dispose(); celestial.dispose(); fireflies.dispose(); lamps.dispose(); sunSchedule.dispose(); framing.dispose(); lifecycle.abort(); }
+  gateMagic.stop();
+  if (!event.persisted) { unsubscribe(); unmountPanel(); unmountDrag(); weather.dispose(); sunlight.dispose(); skyMotion.dispose(); atmosphere.dispose(); celestial.dispose(); fireflies.dispose(); lamps.dispose(); gateMagic.dispose(); sunSchedule.dispose(); framing.dispose(); lifecycle.abort(); }
 });
-window.addEventListener("pageshow",() => { environment.start(); weather.start(); sunlight.start(); skyMotion.start(); atmosphere.start(); celestial.start(); fireflies.start(); lamps.start(); });
+window.addEventListener("pageshow",() => { environment.start(); weather.start(); sunlight.start(); skyMotion.start(); atmosphere.start(); celestial.start(); fireflies.start(); lamps.start(); gateMagic.start(); });
 environment.start();
 weather.start();
 sunlight.start();
@@ -70,3 +73,4 @@ atmosphere.start();
 celestial.start();
 fireflies.start();
 lamps.start();
+gateMagic.start();
