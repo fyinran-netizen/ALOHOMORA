@@ -52,49 +52,6 @@ export function createGateMagicRenderer(canvas,frame,door,castleImage,environmen
     const centerY=(doorRect.top-frameRect.top+doorRect.height*warpPercentY/100-patchY)/patchHeight*pixelHeight;
     // Match the old visible breathing range while keeping the light core narrow.
     const seamFlicker=.28+.72*(.5+.5*Math.sin(now*Math.PI*2/3.2));
-    if(night>0&&!frame.classList.contains("is-gate-hover")){
-      // At rest, a faint warm reflection follows the inner arch. Hide this
-      // contour on hover so the door deformation and seam stay unobstructed.
-      const left=auraX-auraWidth*.16,right=auraX+auraWidth*1.16;
-      const apexY=auraY-auraHeight*.035,springY=auraY+auraHeight*.27,bottomY=auraY+auraHeight*.9;
-      const middle=(left+right)*.5;
-      const glowStrength=night*.13;
-      warpContext.save();
-      warpContext.globalCompositeOperation="screen";
-      warpContext.globalAlpha=glowStrength;
-      warpContext.strokeStyle="rgb(255,211,139)";
-      warpContext.lineWidth=Math.max(1,auraWidth*.018);
-      warpContext.shadowColor="rgba(255,196,105,.8)";
-      warpContext.shadowBlur=Math.max(3,auraWidth*.09);
-      warpContext.beginPath();
-      warpContext.moveTo(left,bottomY);
-      warpContext.quadraticCurveTo(left,springY,middle,apexY);
-      warpContext.quadraticCurveTo(right,springY,right,bottomY);
-      warpContext.stroke();
-
-      if(!reducedMotion.matches){
-        const travel=(now*.16)%2;
-        const onLeft=travel<=1;
-        const t=onLeft?travel:travel-1;
-        const p0=onLeft?{x:left,y:bottomY}:{x:middle,y:apexY};
-        const p1=onLeft?{x:left,y:springY}:{x:right,y:springY};
-        const p2=onLeft?{x:middle,y:apexY}:{x:right,y:bottomY};
-        const inverse=1-t;
-        const px=inverse*inverse*p0.x+2*inverse*t*p1.x+t*t*p2.x;
-        const py=inverse*inverse*p0.y+2*inverse*t*p1.y+t*t*p2.y;
-        const radius=Math.max(2,auraWidth*.035);
-        const glint=warpContext.createRadialGradient(px,py,0,px,py,radius);
-        glint.addColorStop(0,`rgba(255,239,194,${.85*night})`);
-        glint.addColorStop(.28,`rgba(255,205,125,${.4*night})`);
-        glint.addColorStop(1,"rgba(255,190,100,0)");
-        warpContext.globalAlpha=night*.46;
-        warpContext.fillStyle=glint;
-        warpContext.beginPath();
-        warpContext.arc(px,py,radius,0,Math.PI*2);
-        warpContext.fill();
-      }
-      warpContext.restore();
-    }
     if(hover>.08){
       // A hover flare is painted onto the door surface before the warp, so it
       // reads as warm light on the wood instead of a floating cursor marker.

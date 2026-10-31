@@ -28,7 +28,7 @@ export function mountEnvironmentPanel(panel, environment, sunSchedule) {
     controls.namedItem("brightness").disabled = state.lightMode === "auto";
     if (state.lightMode === "auto") controls.namedItem("brightness").value = state.visual.brightness;
     controls.namedItem("intensity").disabled = state.weather === "clear";
-    for (const key of ["speed","wind"]) controls.namedItem(key).disabled = !["rain","snow"].includes(state.weather);
+    controls.namedItem("speed").disabled = !["rain","snow"].includes(state.weather);
     const minutes = Math.round(state.hour*60);
     panel.querySelector("#time-value").value = `${String(Math.floor(minutes/60)).padStart(2,"0")}:${String(minutes%60).padStart(2,"0")}`;
     panel.querySelector("#intensity-value").value = `${Math.round(state.intensity*100)}%`;
