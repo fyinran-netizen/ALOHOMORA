@@ -1,7 +1,6 @@
 import {test} from "node:test";
 import assert from "node:assert/strict";
 import {createEnvironment,deriveEnvironment} from "../js/environment/environmentState.js";
-import {canNavigate} from "../js/navigation/sceneGraph.js";
 
 const state = {hour:0,weather:"clear",intensity:1,lightMode:"auto",brightness:1};
 test("day/night interpolation is finite, continuous and wraps at midnight", () => {
@@ -94,8 +93,4 @@ test("clock modes, input bounds, subscribers and disposal", () => {
   off();
   environment.update({weather:"snow"});
   assert.equal(calls,before);
-});
-test("preserved scene graph is bidirectional", () => {
-  assert.equal(canNavigate("gate","great_hall"),true);
-  assert.equal(canNavigate("great_hall","gate"),true);
 });

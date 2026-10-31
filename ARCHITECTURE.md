@@ -1,96 +1,42 @@
 # ALOHOMORA 架构
 
-原生 HTML、CSS、ES Modules，无框架或构建依赖。当前仅渲染城堡入口；旧 WebGL 大门、礼堂转场及音效执行代码已移除。网页文案使用英文。
+项目使用原生 HTML、CSS 和 JavaScript ES Modules，无框架、依赖安装或构建步骤。本文只说明当前目录职责和模块间的基本接口。
+
+## 文件结构
 
 ```text
-index.html                          页面及环境调试表单
-css/style.css                       分层布局、天空、建筑光照、响应式样式
-js/main.js                          稳定入口
-js/app/main.js                      注册场景加载、状态到渲染的绑定、生命周期清理
-js/scenes/gate.js                   母版路径、取景位置、室外曝光配置
-js/scenes/greatHall.js              保留的礼堂配置，当前不挂载
-js/navigation/sceneRegistry.js      场景注册与查询
-js/navigation/sceneGraph.js         双向连接查询，当前不绑定跳转交互
-js/environment/environmentState.js  环境状态、订阅、时间时钟、连续昼夜曲线
-js/environment/weatherRenderer.js   独立 Canvas 雨雪渲染、粒子生命周期与尺寸适配
-js/environment/sunlight.js          太阳轨迹、光色/天气响应、独立阳光 Canvas
-js/environment/skyMotion.js          独立云团平流、每日变化的星空 Canvas 与生命周期
-js/environment/atmosphereRenderer.js  大片云带、夕照云霞与塔前薄雾 Canvas
-js/debug/environmentPanel.js        英文面板输入与状态同步
-assets/source/                      不可修改的建筑母版
-assets/scenes/                      保留的其他场景素材，当前页面不加载
-assets/audio/                       保留原始音效，当前页面不播放
-tests/environment.test.mjs          环境状态和昼夜边界回归测试
-tests/weather.test.mjs              天气密度、风向、尺寸变化及动画清理测试
-tests/framing.test.mjs              新母版完整取景、构图调节和夜间曝光检查
-tests/sunlight.test.mjs             太阳方向/昼夜连续性、天气衰减及光层生命周期
-tools/asset_pipeline/               离线素材处理说明
+ALOHOMORA/
+├── index.html                      页面结构及 Canvas、环境控制面板
+├── css/
+│   └── style.css                   页面布局、场景样式和响应式规则
+├── js/
+│   ├── main.js                     浏览器模块入口
+│   ├── app/
+│   │   └── main.js                 应用启动、场景挂载和整体生命周期
+│   ├── scenes/                     场景配置及场景专属渲染逻辑
+│   ├── navigation/                 场景注册与场景连接关系
+│   ├── environment/                环境状态、计算和环境效果渲染
+│   └── debug/                      环境控制面板及面板交互
+├── assets/
+│   ├── source/                     原始素材，按场景分类
+│   │   ├── hogwarts_castle_master.png  当前入口使用的建筑母版（固定路径）
+│   │   └── gate/                   大门场景的其他原始素材
+│   ├── scenes/                     按场景存放的图片素材
+│   └── audio/                      音频素材
+├── tests/                          Node.js 内置测试
+└── tools/                          本地预览服务器及离线素材工具
 ```
 
-## 天空与建筑
+## 统一接口
 
-唯一建筑来源为 `assets/source/hogwarts_castle_master.png`。当前母版为 **1024×1536 RGBA**。读取原生尺寸后，由 `fitCastle()` 按屏幕方向选择宽度或高度基准，再用场景的 scale 等比设置图片宽高。不使用渐变遮罩、边缘透明化或任何源文件处理；仅允许图片超出视口时的正常裁切。
+- **场景**：在 `js/scenes/` 导出场景配置，包含 `id`、`assets`、`environment` 等信息。入口场景还提供 `mountFraming(frame, image)`，返回带 `dispose()` 的清理对象。场景由 `sceneRegistry.js` 注册，其他模块通过 `getScene(id)` 查询。
+- **环境状态**：`createEnvironment()` 创建共享状态对象。模块通过 `subscribe(listener)` 获取当前状态和后续更新，使用 `update(patch)` 修改状态，以 `start()` / `stop()` 管理自动时钟。
+- **环境效果**：天气、阳光、天空等渲染器接收对应 Canvas 和共享环境对象，提供 `start()`、`stop()`、`dispose()` 生命周期方法。环境效果不依赖具体场景。
+- **调试面板**：`mountEnvironmentPanel(panel, environment, sunSchedule)` 将控件连接到环境状态，返回卸载函数。面板通过环境接口协作，不直接修改渲染器。
+- **场景连接**：`sceneGraph.js` 提供 `getConnection()`、`canNavigate()` 和 `listConnections()` 查询接口；目前没有配置场景连接，页面也未启用场景跳转。
 
-构图只由 `gate.js` 的 `framing.portrait/landscape` 配置。`mountFraming()` 用 ResizeObserver 随窗口重算，场景卸载时清理，无可变构图状态。两种方向使用独立缩放基准和定位：
+应用装配和浏览器页面生命周期集中在 `js/app/main.js`；`js/main.js` 作为稳定入口加载应用。新增逻辑优先放到所属目录，只有确实被多个场景或效果共享时才放进公共模块。
 
-- 竖屏以高度为基准，scale=1.16、y 偏移 6%，比上一次 1.32 的入口近景缩小约 12%。素材横向 60% 的大门锚点仍放到屏幕横向 50%（sourceX=.6、screenX=.5），保留台阶和一小段前景，高塔允许超出顶边。
-- 横屏以宽度为基准，scale=1、右对齐；将素材纵向 75%（门槛附近）定位到屏幕纵向 65%（sourceY=.75、screenY=.65）。不再把图片底部贴到视口底部，以免石板路/台阶挤占主体，或门楣被顶边截断。常用横屏下保留完整门框和更多上方立面；较高塔楼仍允许裁切。
+## 本地预览
 
-天空、建筑图片、雨雪和阳光 Canvas 各自独立，取景调整不修改这些效果。
-
-调试面板仅保留时间、天气与光照，Composition、Scale、Position 和重置按钮均已移除。后续修改取景直接编辑当前方向的代码配置：scale 相对于 fit 基准，x/y 为视口百分比偏移，正数向右/下。提供 sourceX/screenX 或 sourceY/screenY 时，以源图和视口的比例锚点对齐对应坐标；横轴缺省使用 anchorX，纵轴缺省底部对齐。不要把构图参数放进共享环境状态。
-
-用户再次替换母版后，当前只读检查尺寸仍为 1024×1536 RGBA，Alpha 非零边界触及图片四边；早期母版的具体 Alpha 边界、塔尖和前景行号不应继续当作当前素材数据使用。原生透明通道如实呈现，浏览器 computed mask-image 为 none，不用 CSS 隐藏素材边界。用户保留的备份 `hogwarts_castle_master1.png` 不被运行时引用。
-
-天空颜色按时间插值；建筑单独应用曝光和饱和度。大片云带在天空 Canvas 中渲染，由建筑自然遮挡；前景 Canvas 只绘制半透明的薄雾。方向性阳光由独立 Canvas 在建筑上方、天气粒子下方绘制。母版已有固定阴影，新效果表现空气中的光晕与光束，不会重建建筑表面的日照、遮挡或物理投影。
-
-星星由独立 Canvas 按本地日期生成位置，各自缓慢漂移、闪烁；数量和亮度随夜色加深，接近清晨时逐渐减少。云层采用整体天空构图：`atmosphereRenderer.js` 以不同大小、深浅的云块构成覆盖到顶部的宽幅云带；晴天正午几乎清空，清晨和傍晚晴天增加暖色云霞与缓慢变化的受光，阴、雨、雪增加厚实的冷灰云层且不保留夕阳红调。云块随云量增长逐个扩展、变浓，持续单向缓慢漂移，没有固定的大云图片。云量、颜色、天空底色与建筑曝光在时间或天气变化时缓和过渡。前景只用程序化薄雾轻掠塔身。`skyMotion.js` 仅保留两朵小云作晴天点缀，单向缓慢平流并在离屏后更换位置和素材。后台、退出及减少动态效果偏好会停止连续绘制。
-
-## 环境与调试
-
-`createEnvironment()` 管理全局时间模式、时刻、天气、强度、光照模式、亮度；`subscribe()` 即时推送快照，`update()` 更新值，`start()/stop()` 管理时钟。自动时间读取浏览器本地时间，每秒更新；手动时间覆盖 0–24 小时。纯函数 `deriveEnvironment()` 使用平滑插值计算视觉参数，24:00 与 00:00 相同。
-
-自动光照跟随时间和天气。夜间建筑曝光基线为约 56%，白天仍约 104%，天气影响按日照程度连续计算，避免深夜雨雪把建筑细节压黑；星点和天空时钟不变，全屏暗角已减弱。手动光照仍可直接控制建筑亮度，天空仍跟随时间。晴天云量随时间变化；阴、雨、雪进一步调整云量、天空色调及自动曝光。雨雪由独立 Canvas 实时绘制，无积雪、积水、场景跳转或开门动画。
-
-### 方向性阳光
-
-`deriveSunlight(state)` 是无 DOM 依赖的纯计算，由 `deriveEnvironment()` 调用并附在 `visual.sun`。它输出太阳高度角、方位角、归一化光源位置/方向、RGB 光色、光晕强度、直射光束强度及柔和度。采用艺术化的固定日程：本地时间 6:00 日出、12:30 最高、19:00 日落，最高高度 65°；不根据经纬度、季节或真实天气计算天文位置。上午光源从左侧入射、傍晚从右侧入射，正午位置更高。低角度偏暖金色，高角度偏自然白色；日出日落强度平滑归零，夜间没有阳光。
-
-天气强度控制直射和光晕的不同衰减。晴天光束清楚，阴天直射较弱并更柔和，雨雪进一步减弱；强度为零回到无云响应。手动亮度仍控制建筑，也按有限增益调节阳光，零亮度关闭光层；即使手动提高亮度，夜间也不会生成太阳。面板 Lighting 下显示只读 Sun elevation / Direct sunlight，便于核对联动。
-
-`createSunlightRenderer(canvas, environment, options)` 只订阅环境快照，不依赖大门或母版。使用局部径向光晕与四条固定、不均匀间隔的柔边方向光束，低不透明度配合 screen 混合保留建筑细节；不叠加整屏黄色滤镜，不画太阳光斑或透镜耀斑。光源随时间移动，光束跟随同一方向，拖动滑块立即重绘。
-
-光层只在状态或尺寸改变时请求一次动画帧，连续输入合并，静止时没有循环。画布像素预算约 75 万，最高 1 倍像素比，避免柔光滤镜使用过大缓冲区；后台暂停，退出取消帧并清理订阅、事件和 ResizeObserver。
-
-后续精确遮罩接入点是可选的 `drawOcclusionMask(ctx,{width,height,sun})`：在光层绘制后用 destination-out 移除需要遮挡的光。当前没有传入该回调、没有建筑表面光照蒙版，也没有修改源图透明通道。未来场景可独立决定如何绘制遮挡，不需要修改太阳状态算法。
-
-天气状态另含速度倍率 `speed`（0.25–2）和水平风 `wind`（-1–1，负数向左）。`createWeatherRenderer(canvas, environment)` 订阅共享状态，分远、中、近三层绘制雨丝或雪花。强度线性控制密度；尺寸、速度、不透明度随深度变化，雪花叠加轻微正弦漂移。雪花的尺寸、透明度和速度另有独立随机因子，远景保留约 0.7–1.3px 半径的小雪花，近景约 3.1–6px 半径，更明显且避免全部同速。Canvas 覆盖完整视口、禁止接收点击，不对建筑使用模糊或滤镜。
-
-绘制使用秒制位移与 requestAnimationFrame，限制恢复后的时间步长；按视口面积计算数量，上限 1000，像素比最高 2、画布约 400 万像素以内。天气切换即时清除旧粒子；晴、阴、零强度时不循环绘制，后台标签暂停，减少动态效果设置下降低速度。卸载时取消动画帧、订阅、观察器与事件。面板默认收起，展开置于左上，窄屏使用较窄且可滚动的表单，尽量避开右侧入口。
-
-环境状态模块没有 DOM 或场景依赖，Canvas 渲染单独封装。应用订阅环境状态，并结合场景曝光配置更新 CSS 变量；未来室内场景应定义自己的渲染响应，复用时间和天气状态，而不必使用室外的过滤器。面板只调用环境接口，不持有场景实现。页面离开时停止定时器、解除订阅及事件监听，浏览器往返缓存恢复时重启时钟。
-
-## 导航和扩展
-
-注册与双向连接设计保留：在 `sceneRegistry.js` 注册，在 `sceneGraph.js` 配置一次连接即可双向查询。现有入口与礼堂连接是拓扑数据，当前没有导航控件或转场执行器。
-
-新增场景：
-
-1. 将专属素材放在 `assets/scenes/<scene_name>/`，文件和资源目录采用 snake_case。
-2. 在 `js/scenes/` 定义场景配置，加入注册表。
-3. 需要导航时配置连接及该场景的热点；本阶段导航交互未启用，后续需实现挂载/卸载和转场调度。
-4. 场景自己的取景、光照响应和遮罩留在场景内；只将确实共享的能力提取到公共模块。
-
-新增公共环境效果时，在环境模块计算状态或参数，由场景渲染层消费；专属遮罩继续与该场景素材放在一起。不要将未实现的效果当作已完成。
-
-## 修改位置与检查
-
-- 修改时刻/天气算法：`environmentState.js`。
-- 修改雨雪粒子、远近层次、数量和绘制性能：`weatherRenderer.js`。
-- 修改太阳轨迹、颜色、天气对阳光的影响、光晕与光束：`sunlight.js`；图层顺序在 `index.html`，状态由 `environmentState.js` 汇合。
-- 修改入口素材/横竖屏构图：`gate.js` 的 `framing`、`fitCastle` 与 `mountFraming`。
-- 修改天空和建筑表现：`style.css` 与应用内的 CSS 变量绑定。
-- 修改面板：`index.html` 和 `environmentPanel.js`。
-- 离线素材工具：`tools/asset_pipeline/`，不引入网页 Python 后端。
-
-验证：`node --test tests/*.test.mjs`，对所有 JS 运行 `node --check`，运行 `git diff --check`。通过 HTTP 静态服务器预览页面，不能以 file:// 打开 ES Modules。检查横竖屏、早晨/正午/傍晚光束方向与光色、夜间关闭、天气衰减、强度、速度、风向、手动亮度和面板折叠。
+需要 Node.js。在项目根目录运行 `node tools/preview.mjs`，然后打开 <http://127.0.0.1:5173/>。停止时在终端按 `Ctrl+C`。项目没有 `npm start` 或构建命令。

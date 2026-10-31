@@ -53,8 +53,30 @@ export function fitCastle(viewport, source, framing) {
 
 function mountFraming(frame,image) {
   const events = new AbortController();
+  const reducedMotion = globalThis.matchMedia?.("(prefers-reduced-motion: reduce)");
   const aura=frame.querySelector("#gate-aura");
   const lights=frame.querySelector("#gate-lights");
+  function moveWithPointer(event) {
+    if (reducedMotion?.matches) return;
+    const bounds=frame.getBoundingClientRect();
+    const x=(event.clientX-bounds.left)/bounds.width-.5;
+    const y=(event.clientY-bounds.top)/bounds.height-.5;
+    frame.style.setProperty("--sky-parallax-x",`${-x*9}px`);
+    frame.style.setProperty("--sky-parallax-y",`${-y*7}px`);
+    frame.style.setProperty("--castle-parallax-x",`${x*4}px`);
+    frame.style.setProperty("--castle-parallax-y",`${y*3}px`);
+  }
+  function resetParallax() {
+    if (!frame.style?.setProperty) return;
+    for (const name of ["--sky-parallax-x","--sky-parallax-y","--castle-parallax-x","--castle-parallax-y"]) {
+      frame.style.setProperty(name,"0px");
+    }
+  }
+  if (reducedMotion && !reducedMotion.matches && matchMedia("(hover: hover) and (pointer: fine)").matches) {
+    frame.addEventListener("pointermove",moveWithPointer,{signal:events.signal});
+    frame.addEventListener("pointerleave",resetParallax,{signal:events.signal});
+    reducedMotion.addEventListener("change",event => {if(event.matches) resetParallax();},{signal:events.signal});
+  }
   function render() {
     const viewport = {width:frame.clientWidth,height:frame.clientHeight};
     const orientation = viewport.width/viewport.height < .8 ? "portrait" : "landscape";
@@ -78,6 +100,6 @@ function mountFraming(frame,image) {
   image.addEventListener("load",render,{signal:events.signal});
   render();
   return {
-    dispose() { observer.disconnect(); events.abort(); },
+    dispose() { observer.disconnect(); resetParallax(); events.abort(); },
   };
 }

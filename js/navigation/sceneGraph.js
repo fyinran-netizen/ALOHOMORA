@@ -1,10 +1,8 @@
 import { getScene } from "./sceneRegistry.js";
 
 // Connections describe the world, while each scene owns the hotspot that
-// presents the connection. This keeps visual placement independent per side.
-const connections = [
-  { from: "gate", to: "great_hall", id: "gate-to-great-hall" },
-];
+// presents the connection. No scene transitions are configured yet.
+const connections = [];
 
 const directed = new Map();
 for (const connection of connections) {
